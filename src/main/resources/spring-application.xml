@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd
+http://www.springframework.org/schema/tx
+http://www.springframework.org/schema/tx/spring-tx.xsd">
+    <bean name="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver"></property>
+        <property name="url" value="jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL = TCP)(HOST =10.221.155.90)(PORT = 1521))(LOAD_BALANCE=no)(CONNECT_DATA=(SERVICE_NAME=ORA60T)(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC)(RETRIES=180)(DELAY=5))))"></property>
+        <property name="username" value="carrier"></property>
+        <property name="password" value="carrier169"></property>
+        <!--<property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
+        <property name="url" value="jdbc:mysql://localhost:3306/bookstore?useUnicode=true&amp;characterEncoding=utf-8"></property>
+        <property name="username" value="root"></property>
+        <property name="password" value="root"></property>-->
+    </bean>
+    <bean name="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <bean name="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+
+    <!--整合mybatis的配置-->
+    <bean name="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"></property>
+        <!--配置MyBatis的全局配置文件-->
+        <property name="configuration" value="classpath:sqlConfig.xml"></property>
+    </bean>
+
+    <!-- 配置mybatis的代理接口开发
+        * 接口类名和映射文件必须同名
+        * 接口类和映射文件必须在同一个目录下
+        * 接口的映射文件的namespace名称必须是接口的全限定名
+        * 接口的方法名必须和映射的statement的id一致 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+        <!--扫描所有dao接口的实现，加入到ioc的容器当中-->
+        <property name="basePackage" value="com.travelsky.mapper"></property>
+    </bean>
+
+    <!--事务的配置-->
+    <bean name="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager" >
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <aop:config>
+        <aop:pointcut id="txPoint" expression="execution(*com.travelsky.service..*(..))"></aop:pointcut>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPoint"></aop:advisor>
+    </aop:config>
+    <tx:advice id="txAdvice" transaction-manager="txManager">
+        <tx:attributes>
+            <tx:method name="get*" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+</beans>
